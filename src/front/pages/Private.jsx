@@ -9,6 +9,7 @@ export default function Private() {
     const [showModal, setShowModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [newEmail, setNewEmail] = useState("");
+    const BASE = import.meta.env.VITE_BACKEND_URL || '';
 
     const token = getToken();
 
@@ -21,7 +22,7 @@ export default function Private() {
     }, [navigate]);
 
     const fetchUsers = () => {
-        fetch("/api/users", {
+        fetch(`${BASE}/api/users`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -42,7 +43,7 @@ export default function Private() {
 
     const handleSave = () => {
         if (!selectedUser) return;
-        fetch(`/api/users/${selectedUser.id}`, {
+        fetch(`${BASE}/api/users/${selectedUser.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -63,7 +64,7 @@ export default function Private() {
 
     const handleDelete = (id) => {
         if (!window.confirm("¿Seguro que quieres eliminar este usuario?")) return;
-        fetch(`/api/users/${id}`, {
+        fetch(`${BASE}/api/users/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
         })

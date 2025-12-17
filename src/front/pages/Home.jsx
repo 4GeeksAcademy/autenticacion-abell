@@ -2,6 +2,7 @@ import fondoInicio from "../assets/img/fondo-inicio.webp";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { setToken, setRefreshToken } from "../utils/auth";
+const BASE = import.meta.env.VITE_BACKEND_URL || '';
 
 export default function Home() {
 	const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function Home() {
 		e.preventDefault();
 		setLoginError('');
 		try {
-			const res = await fetch(`/api/login`, {
+			const res = await fetch(`${BASE}/api/login`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ email, password }),

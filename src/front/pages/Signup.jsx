@@ -32,7 +32,8 @@ function Signup() {
         setError('');
         if (!validate()) return;
         try {
-            const res = await fetch(`/api/signup`, {
+            const BASE = import.meta.env.VITE_BACKEND_URL || '';
+            const res = await fetch(`${BASE}/api/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
                 body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
