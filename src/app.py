@@ -42,7 +42,7 @@ MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 setup_admin(app)
 setup_commands(app)
-app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(api)
 
 
 @app.errorhandler(APIException)
@@ -127,22 +127,7 @@ def refresh():
         return jsonify({'msg': 'Refresh token inválido'}), 401
 
 
-@app.route('/private', methods=['GET'])
-def private():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return jsonify({'msg': 'Token requerido'}), 401
-    try:
-        token = auth_header.split(' ')[1]
-        data = jwt.decode(
-            token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        from api.models import User
-        user = User.query.get(data['user_id'])
-        if not user:
-            return jsonify({'msg': 'Usuario no encontrado'}), 404
-        return jsonify({'msg': 'Acceso permitido', 'email': user.email})
-    except Exception:
-        return jsonify({'msg': 'Token inválido'}), 401
+# La ruta /private está implementada en el blueprint `api`.
 @app.route('/')
 def index():
     return '''
@@ -201,4 +186,6 @@ def index():
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=3001)

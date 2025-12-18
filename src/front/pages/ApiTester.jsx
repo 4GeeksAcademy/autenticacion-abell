@@ -7,7 +7,7 @@ const ApiTester = () => {
     const [response, setResponse] = useState("");
 
     const login = async () => {
-        const res = await fetch("http://localhost:3001/api/login", {
+        const res = await fetch("http://localhost:3001/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
@@ -18,7 +18,7 @@ const ApiTester = () => {
     };
 
     const privateRequest = async () => {
-        const res = await fetch("http://localhost:3001/api/private", {
+        const res = await fetch("http://localhost:3001/private", {
             headers: {
                 Authorization: `Bearer ${token}`
             }
