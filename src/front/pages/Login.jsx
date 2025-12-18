@@ -12,7 +12,7 @@ function Login() {
 
         try {
             const BASE = import.meta.env.VITE_BACKEND_URL || "";
-            const res = await fetch(`${BASE}/api/login`, {
+            const res = await fetch(`/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -25,8 +25,8 @@ function Login() {
                 return;
             }
 
-            localStorage.setItem("token", data.token);
-            navigate("/");
+            sessionStorage.setItem("token", data.token);
+            navigate("/private");
         } catch (err) {
             setError("No se pudo conectar con el servidor");
         }

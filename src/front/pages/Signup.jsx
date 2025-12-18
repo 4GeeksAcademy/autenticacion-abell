@@ -33,7 +33,7 @@ function Signup() {
         if (!validate()) return;
         try {
             const BASE = import.meta.env.VITE_BACKEND_URL || '';
-            const res = await fetch(`${BASE}/api/signup`, {
+            const res = await fetch(`/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
                 body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
@@ -42,7 +42,7 @@ function Signup() {
                 setRegistered(true);
                 const nameToStore = (firstName || '').trim();
                 setRegisteredName(nameToStore);
-                try { localStorage.setItem('registered_name', nameToStore); } catch (e) { }
+                try { sessionStorage.setItem('registered_name', nameToStore); } catch (e) { }
             } else {
                 const body = await res.json().catch(() => ({}));
                 setError(body.msg || `Error registrando usuario (status ${res.status})`);

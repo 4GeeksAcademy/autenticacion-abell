@@ -60,7 +60,7 @@ export async function refreshAccessToken() {
   const refresh = getRefreshToken();
   if (!refresh) return null;
   try {
-    const res = await fetch(`/api/refresh`, {
+    const res = await fetch(`/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refresh }),

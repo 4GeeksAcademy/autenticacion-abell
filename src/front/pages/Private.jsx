@@ -22,7 +22,7 @@ export default function Private() {
     }, [navigate]);
 
     const fetchUsers = () => {
-        fetch(`${BASE}/api/users`, {
+        fetch(`${BASE}/users`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -43,7 +43,7 @@ export default function Private() {
 
     const handleSave = () => {
         if (!selectedUser) return;
-        fetch(`${BASE}/api/users/${selectedUser.id}`, {
+        fetch(`${BASE}/users/${selectedUser.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -64,7 +64,7 @@ export default function Private() {
 
     const handleDelete = (id) => {
         if (!window.confirm("¿Seguro que quieres eliminar este usuario?")) return;
-        fetch(`${BASE}/api/users/${id}`, {
+        fetch(`${BASE}/users/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
         })
