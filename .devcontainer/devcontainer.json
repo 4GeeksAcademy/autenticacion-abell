@@ -10,5 +10,6 @@
       "label": "Frontend (Vite)",
       "onAutoForward": "openBrowser"
     }
-  }
+  },
+  "postCreateCommand": "echo ''"
 }

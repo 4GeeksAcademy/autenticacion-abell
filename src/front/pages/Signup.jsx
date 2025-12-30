@@ -32,8 +32,8 @@ function Signup() {
         setError('');
         if (!validate()) return;
         try {
-            const BASE = import.meta.env.VITE_BACKEND_URL || '';
-            const res = await fetch(`/signup`, {
+            const BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+            const res = await fetch(`${BASE}/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
                 body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),

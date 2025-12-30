@@ -1,10 +1,4 @@
-"""Add is_active to user
-
-Revision ID: 91eaacecb322
-Revises: 095badf57331
-Create Date: 2025-12-08 13:31:16.712536
-
-"""
+ 
 from alembic import op
 import sqlalchemy as sa
 revision = '91eaacecb322'

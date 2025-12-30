@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import useGlobalReducer from "../hooks/useGlobalReducer";  // Custom hook for accessing the global state.
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Demo = () => {
   const { store, dispatch } = useGlobalReducer()
@@ -11,7 +11,7 @@ export const Demo = () => {
         {store && store.todos?.map((item) => {
           return (
             <li
-              key={item.id}  // React key for list items.
+              key={item.id}
               className="list-group-item d-flex justify-content-between"
               style={{ background: item.background }}>
 

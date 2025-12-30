@@ -1,5 +1,5 @@
 import { useContext, useReducer, createContext } from "react";
-import storeReducer, { initialStore } from "../store"  // Import the reducer and the initial state.
+import storeReducer, { initialStore } from "../store"
 const StoreContext = createContext()
 export function StoreProvider({ children }) {
     const [store, dispatch] = useReducer(storeReducer, initialStore())

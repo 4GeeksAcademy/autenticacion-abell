@@ -1,18 +1,18 @@
-"""
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
-from flask_cors import CORS as _CORS
+
+
+ 
+
 from datetime import datetime, timedelta
 import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
 from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, url_for, send_from_directory
 from flask_migrate import Migrate
-from flask_swagger import swagger
+from flasgger import Swagger
+from flasgger import swag_from
 from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.routes import api
@@ -22,14 +22,36 @@ from api.commands import setup_commands
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../dist/')
+
+
+
 app = Flask(__name__)
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Autenticacion API",
+        "description": "API para autenticación y gestión de usuarios. Prueba los endpoints y tokens aquí.",
+        "version": "1.0.0"
+    },
+    "basePath": "/"
+}
+Swagger(app, template=swagger_template)
+from flask_cors import CORS, cross_origin
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    return response
 app.url_map.strict_slashes = False
+
 
 load_dotenv()
 if not os.path.exists('.env'):
     load_dotenv('.env.example')
 
-_CORS(app)
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
@@ -42,7 +64,130 @@ MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 setup_admin(app)
 setup_commands(app)
-app.register_blueprint(api)
+
+app.register_blueprint(api, url_prefix="/")
+
+from flasgger import swag_from
+from api.models import User
+from api.auth import jwt_required
+
+@app.route('/users', methods=['GET', 'OPTIONS'])
+@jwt_required
+@swag_from({
+    'tags': ['Usuarios'],
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'type': 'string',
+            'required': True,
+            'description': 'Bearer <token>'
+        }
+    ],
+    'responses': {
+        200: {'description': 'Lista de usuarios'},
+        401: {'description': 'Token requerido o inválido'}
+    }
+})
+def list_users(auth_user_id=None):
+    if request.method == "OPTIONS":
+        return '', 200
+    users = User.query.all()
+    data = [
+        {
+            'id': u.id,
+            'email': u.email,
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'is_active': bool(u.is_active)
+        }
+        for u in users
+    ]
+    return jsonify(data), 200
+
+@app.route('/users/<int:user_id>', methods=['PUT', 'OPTIONS'])
+@jwt_required
+@swag_from({
+    'tags': ['Usuarios'],
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'type': 'string',
+            'required': True,
+            'description': 'Bearer <token>'
+        },
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'email': {'type': 'string'},
+                    'first_name': {'type': 'string'},
+                    'last_name': {'type': 'string'}
+                }
+            }
+        }
+    ],
+    'responses': {
+        200: {'description': 'Usuario actualizado'},
+        404: {'description': 'Usuario no encontrado'},
+        401: {'description': 'Token requerido o inválido'}
+    }
+})
+def update_user(auth_user_id, user_id):
+    if request.method == "OPTIONS":
+        return '', 200
+    data = request.get_json() or {}
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+    user.email = data.get('email', user.email)
+    if 'first_name' in data:
+        user.first_name = data.get('first_name')
+    if 'last_name' in data:
+        user.last_name = data.get('last_name')
+    db.session.commit()
+    return jsonify({
+        'id': user.id,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'is_active': bool(user.is_active)
+    }), 200
+
+@app.route('/users/<int:user_id>', methods=['DELETE', 'OPTIONS'])
+@jwt_required
+@swag_from({
+    'tags': ['Usuarios'],
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'type': 'string',
+            'required': True,
+            'description': 'Bearer <token>'
+        }
+    ],
+    'responses': {
+        200: {'description': 'Usuario eliminado'},
+        404: {'description': 'Usuario no encontrado'},
+        401: {'description': 'Token requerido o inválido'}
+    }
+})
+def delete_user(auth_user_id, user_id):
+    if request.method == "OPTIONS":
+        return '', 200
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"msg": "Usuario eliminado"}), 200
+
+
 
 
 @app.errorhandler(APIException)
@@ -53,16 +198,41 @@ def handle_invalid_usage(error):
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY') or os.getenv('JWT_SECRET', 'super-secret-key')
 
 
-@app.route('/signup', methods=['POST'])
+@app.route('/signup', methods=['POST', 'OPTIONS'])
+@swag_from({
+    'tags': ['Usuarios'],
+    'parameters': [
+        {'name': 'body', 'in': 'body', 'required': True, 'schema': {
+            'type': 'object',
+            'properties': {
+                'email': {'type': 'string'},
+                'password': {'type': 'string'},
+                'first_name': {'type': 'string'},
+                'last_name': {'type': 'string'}
+            },
+            'required': ['email', 'password', 'first_name', 'last_name']
+        }}
+    ],
+    'responses': {
+        201: {'description': 'Usuario creado'},
+        400: {'description': 'Faltan campos requeridos o usuario ya existe'}
+    }
+})
 def signup():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     data = request.get_json() or {}
     email = data.get('email')
     password = data.get('password')
     first_name = data.get('first_name')
     last_name = data.get('last_name')
     from api.models import User
+    if not email or not password or not first_name or not last_name:
+        return jsonify({'msg': 'Faltan campos requeridos'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'msg': 'Usuario ya existe'}), 400
+    if password is None:
+        return jsonify({'msg': 'Contraseña requerida'}), 400
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
     user = User(email=email, password=hashed_password,
                 first_name=first_name, last_name=last_name, is_active=True)
@@ -71,35 +241,62 @@ def signup():
     return jsonify({'msg': 'Usuario creado'}), 201
 
 
-@app.route('/login', methods=['POST'])
+
+
+@app.route('/login', methods=['POST', 'OPTIONS'])
+@swag_from({
+    'tags': ['Auth'],
+    'parameters': [
+        {'name': 'body', 'in': 'body', 'required': True, 'schema': {
+            'type': 'object',
+            'properties': {
+                'email': {'type': 'string'},
+                'password': {'type': 'string'}
+            },
+            'required': ['email', 'password']
+        }}
+    ],
+    'responses': {
+        200: {'description': 'Token JWT'},
+        401: {'description': 'Credenciales inválidas'}
+    }
+})
 def login():
-    data = request.get_json()
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    data = request.get_json() or {}
     email = data.get('email')
     password = data.get('password')
+
     from api.models import User
     user = User.query.filter_by(email=email).first()
+
     if not user or not check_password_hash(user.password, password):
         return jsonify({'msg': 'Credenciales inválidas'}), 401
-    access_token = jwt.encode({
-        'user_id': user.id,
-        'exp': datetime.utcnow() + timedelta(minutes=15)
-    }, app.config['SECRET_KEY'], algorithm='HS256')
 
-    refresh_token = jwt.encode({
-        'user_id': user.id,
-        'exp': datetime.utcnow() + timedelta(days=7),
-        'type': 'refresh'
-    }, app.config['SECRET_KEY'], algorithm='HS256')
-
-    if isinstance(access_token, bytes):
-        access_token = access_token.decode('utf-8')
-    if isinstance(refresh_token, bytes):
-        refresh_token = refresh_token.decode('utf-8')
-
-    return jsonify({'token': access_token, 'refresh_token': refresh_token})
+    from api.auth import generate_token
+    token = generate_token(user.id, expires_hours=2)
+    return jsonify({"token": token}), 200
 
 
 @app.route('/refresh', methods=['POST'])
+@swag_from({
+    'tags': ['Auth'],
+    'parameters': [
+        {'name': 'body', 'in': 'body', 'required': True, 'schema': {
+            'type': 'object',
+            'properties': {
+                'refresh_token': {'type': 'string'}
+            },
+            'required': ['refresh_token']
+        }}
+    ],
+    'responses': {
+        200: {'description': 'Nuevo token JWT'},
+        401: {'description': 'Refresh token inválido o expirado'}
+    }
+})
 def refresh():
     data = request.get_json() or {}
     refresh_token = data.get('refresh_token')
@@ -127,65 +324,12 @@ def refresh():
         return jsonify({'msg': 'Refresh token inválido'}), 401
 
 
-# La ruta /private está implementada en el blueprint `api`.
-@app.route('/')
+from flask import redirect
+@app.route("/")
 def index():
-    return '''
-    <html>
-    <head>
-        <title>Rigo welcomes you to your API!!</title>
-        <script>
-        async function showEndpoint(path, method = 'GET') {
-            let body = null;
-            let headers = {};
-            if(path === '/signup') {
-                method = 'POST';
-                body = JSON.stringify({email: '', password: ''});
-                headers['Content-Type'] = 'application/json';
-            }
-            if(path === '/login') {
-                method = 'POST';
-                body = JSON.stringify({email: '', password: ''});
-                headers['Content-Type'] = 'application/json';
-            }
-            if(path === '/private') {
-                method = 'GET';
-                let token = window.sessionStorage.getItem('token');
-                if(token) headers['Authorization'] = 'Bearer ' + token;
-            }
-            let res = await fetch(path, {method, headers, body});
-            let text = await res.text();
-            try { text = JSON.stringify(JSON.parse(text), null, 2); } catch(e){}
-            if(path === '/login' && res.ok) {
-                try {
-                    let data = JSON.parse(text);
-                    if(data.token) window.sessionStorage.setItem('token', data.token);
-                } catch(e){}
-            }
-            document.getElementById('response').innerText = text;
-        }
-        </script>
-    </head>
-    <body style="font-family:sans-serif;text-align:center;">
-        <h1>Rigo welcomes you to your API!!</h1>
-        <p>API HOST: <input value="http://localhost:3001" readonly style="width:300px;text-align:center;" /></p>
-        <p>Start working on your project by following the <a href="https://github.com/4GeeksAcademy/react-flask-hello">Quick Start</a></p>
-        <p>Remember to specify a real endpoint path like:</p>
-        <div style="display:flex; justify-content:flex-start;">
-            <ul style="text-align:left; display:block; margin-left:0;">
-                <li><a href="#" onclick="showEndpoint('/admin/');return false;">/admin/</a></li>
-                <li><a href="#" onclick="showEndpoint('/signup');return false;">/signup</a></li>
-                <li><a href="#" onclick="showEndpoint('/login');return false;">/login</a></li>
-                <li><a href="#" onclick="showEndpoint('/private');return false;">/private</a></li>
-            </ul>
-        </div>
-        <pre id="response" style="text-align:left; background:#f4f4f4; padding:1em; margin:2em; border-radius:8px; min-height:100px;"></pre>
-    </body>
-    </html>
-    '''
-
+    return redirect("/admin/")
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=3001)
+    app.run(host='0.0.0.0', port=3001, debug=True)

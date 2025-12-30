@@ -1,10 +1,4 @@
-"""empty message
-
-Revision ID: 669a11f0b9e0
-Revises: 0763d677d453
-Create Date: 2025-12-05 10:14:06.780237
-
-"""
+ 
 from alembic import op
 import sqlalchemy as sa
 revision = '669a11f0b9e0'

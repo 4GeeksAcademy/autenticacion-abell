@@ -5,6 +5,7 @@ import { getToken, isTokenValid, removeToken, getRefreshToken, isTokenExpired, r
 function Navbar() {
 	const navigate = useNavigate();
 	const [auth, setAuth] = useState(false);
+	const token = sessionStorage.getItem("token");
 
 	useEffect(() => {
 		const t = getToken();
@@ -63,9 +64,11 @@ function Navbar() {
 								<li className="nav-item">
 									<Link className="nav-link text-white" to="/private">Privado</Link>
 								</li>
-								<li className="nav-item">
-									<button className="btn btn-warning ms-2" onClick={handleLogout}>Cerrar sesión</button>
-								</li>
+								{token && (
+									<li className="nav-item">
+										<button className="btn btn-warning ms-2" onClick={handleLogout}>Cerrar sesión</button>
+									</li>
+								)}
 							</>
 						)}
 					</ul>

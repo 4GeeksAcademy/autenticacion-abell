@@ -1,10 +1,4 @@
-"""add task group assigned
-
-Revision ID: 4abc463f832a
-Revises: 91eaacecb322
-Create Date: 2025-12-17 16:33:56.359031
-
-"""
+ 
 from alembic import op
 import sqlalchemy as sa
 revision = '4abc463f832a'
